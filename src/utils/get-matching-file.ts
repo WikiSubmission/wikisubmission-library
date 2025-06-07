@@ -80,8 +80,8 @@ function scoreMatch(fileName: string, target: string): number {
             .replace(/\s+/g, " ")
             .trim();
 
-    const targetBase = normalize(path.parse(target).name);
-    const baseName = normalize(path.parse(fileName).name);
+    const baseName = normalize(fileName.split(".")?.[0]);
+    const targetBase = normalize(target.split(".")?.[0]);
 
     if (!baseName || !targetBase) return 0;
 
