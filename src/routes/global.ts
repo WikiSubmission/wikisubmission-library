@@ -11,14 +11,6 @@ export default function route(): WRoute {
         handler: async (request: FastifyRequest, reply: FastifyReply) => {
             const url = request.url;
 
-            // [Health check]
-            if (url === "/health") {
-                return reply.send({
-                    status: "ok",
-                    timestamp: new Date().toISOString()
-                });
-            }
-
             // [Public files]
             try {
                 const publicPath = path.join(process.cwd(), "src/public", url);
@@ -51,8 +43,8 @@ export default function route(): WRoute {
             }
 
             return reply.code(404).send({
-                error: "Not Found",
-                message: "The requested resource was not found"
+                status: "ok",
+                timestamp: new Date().toISOString()
             });
         },
     };
