@@ -1,6 +1,6 @@
 # WikiSubmission Library
 
-Public APIs for querying Submission resources.
+Public API for querying Submission resources.
 
 ## Endpoints
 
@@ -21,7 +21,7 @@ https://library.wikisubmission.org/search/{QUERY}
 
 Returns a JSON object containing a sorted array of matching files.
 
-## TODO
+## Todo
 
 More is to be added. For now, it serves its basic purpose.
 
