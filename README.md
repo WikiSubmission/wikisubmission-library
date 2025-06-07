@@ -4,11 +4,16 @@ Public APIs for querying Submission resources.
 
 ## Endpoints
 
+### Load a resource.
+
 ```
 https://library.wikisubmission.org/file/{QUERY}
 ```
 
 Returns the actual file on a best effort basis.
+
+
+### Query for a resource.
 
 ```
 https://library.wikisubmission.org/search/{QUERY}
