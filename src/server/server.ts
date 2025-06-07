@@ -10,7 +10,7 @@ export class Server {
 
     server: FastifyInstance;
 
-    port = 8080;
+    port = parseInt(process.env.PORT || "8080");
 
     constructor() {
         this.server = Fastify({
@@ -61,7 +61,7 @@ export class Server {
         this.server.log.info(`=== Starting ===\n`);
         this.registerPlugins();
         await this.registerRoutes();
-        await this.server.listen({ port: this.port });
+        await this.server.listen({ port: this.port, host: "0.0.0.0" });
     }
 
     // [Stop]
