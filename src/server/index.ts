@@ -78,7 +78,11 @@ export class Server {
         }
         this.server.log.info(`${routes.length} routes: ${routes.map(r => `${r.url}`).join(", ")}`);
         for (const route of routes) {
-            this.server.route(route);
+            try {
+                this.server.route(route);
+            } catch (error) {
+                this.server.log.error(`Error registering route ${route.url}: ${error}`);
+            }
         }
     }
 
