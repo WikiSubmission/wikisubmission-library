@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import NodeCache from 'node-cache';
-import { Server } from '../server/server';
+import { Server } from '../server';
 
 const fileExportCache = new NodeCache();
 
