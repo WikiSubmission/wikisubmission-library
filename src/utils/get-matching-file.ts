@@ -53,7 +53,7 @@ function extractMatches(
                 name,
                 folder: bucket,
                 path: `${bucket}/${name}`,
-                extension: f.metadata?.mimetype || name.split(".").pop()?.toLowerCase() || "unknown",
+                type: f.metadata?.mimetype || name.split(".").pop()?.toLowerCase() || "unknown",
                 score: scoreMatch(name, hint),
                 url: `https://library.wikisubmission.org/file/${name}`,
                 urls: [
