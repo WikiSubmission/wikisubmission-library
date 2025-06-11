@@ -1,6 +1,6 @@
 export type WFileResult = {
+    name: string;
     folder: string;
-    file: string;
     path: string;
     extension: string;
     score: number;
