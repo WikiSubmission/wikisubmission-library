@@ -33,7 +33,7 @@ export default function route(): WRoute {
                 } else {
                     try {
                         const db = getSupabaseClient();
-                        const { data: pub } = db.storage.from(best.folder).getPublicUrl(best.file);
+                        const { data: pub } = db.storage.from(best.folder).getPublicUrl(best.name);
                         publicUrl = pub.publicUrl;
                         setCachedFile(cacheKey, publicUrl, {});
                     } catch (error) {
@@ -44,7 +44,7 @@ export default function route(): WRoute {
                     }
                 }
 
-                reply.header("content-disposition", `inline; filename="${best.file.split("/").pop() || best.file}"`);
+                reply.header("content-disposition", `inline; filename="${best.name.split("/").pop() || best.name}"`);
                 reply.header("cache-control", `public, max-age=${getBrowserCacheDuration()}, immutable`);
 
                 return reply.from(publicUrl);

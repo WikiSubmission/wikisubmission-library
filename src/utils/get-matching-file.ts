@@ -50,8 +50,8 @@ function extractMatches(
         .map(f => {
             const name = f.name;
             return {
+                name,
                 folder: bucket,
-                file: name,
                 path: `${bucket}/${name}`,
                 extension: f.metadata?.mimetype || name.split(".").pop()?.toLowerCase() || "unknown",
                 score: scoreMatch(name, hint),
