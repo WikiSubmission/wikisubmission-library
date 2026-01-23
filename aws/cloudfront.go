@@ -32,7 +32,7 @@ func materializeKey() {
     path := os.Getenv("CLOUDFRONT_PRIVATE_KEY_PATH")
 
     if content != "" && path != "" {
-        // Ensure the directory structure (e.g., /root/aws/) exists
+        // Ensure the directory structure (e.g., /app/aws/) exists
         dir := filepath.Dir(path)
         _ = os.MkdirAll(dir, 0755)
 

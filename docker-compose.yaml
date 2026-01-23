@@ -28,7 +28,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./aws/private_key.pem:/root/aws/private_key.pem:ro
+      - ./aws/private_key.pem:/app/aws/private_key.pem:ro
 
   # 3. Prometheus (Metrics Collector)
   prometheus:

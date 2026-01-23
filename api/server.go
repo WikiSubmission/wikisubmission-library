@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"html/template"
 	"log/slog"
@@ -21,6 +22,8 @@ import (
 	"github.com/wikisubmission/ws-lib/db"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
+
+var templateFS embed.FS
 
 // StartServer initializes the HTTP server, sets up middleware,
 // configures routes, and handles graceful shutdown.
@@ -51,7 +54,8 @@ func StartServer(database *db.DB) {
 		},
 	})
 
-	r.LoadHTMLGlob("templates/*")
+	templ := template.Must(template.ParseFS(templateFS, "templates/*.html"))
+    r.SetHTMLTemplate(templ)
 	// Configure Trusted Proxies from Env
 	proxiesEnv := os.Getenv("TRUSTED_PROXIES")
 	if proxiesEnv != "" {
@@ -93,6 +97,17 @@ func StartServer(database *db.DB) {
 		}
 		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 	})
+	r.GET("/robots.txt", func(c *gin.Context) {
+			const robots = `User-agent: *
+		Allow: /
+		Allow: /explorer
+		Disallow: /file/
+		Disallow: /search
+		Disallow: /api/
+		Disallow: /file/private/`
+
+			c.String(200, robots)
+		})
 
 	// 5. Server Configuration
 	port := os.Getenv("PORT")

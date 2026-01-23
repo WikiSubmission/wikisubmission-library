@@ -16,13 +16,13 @@ RUN go mod download
 COPY . .
 
 # Build the API binary (Static build for Alpine)
-RUN CGO_ENABLED=0 GOOS=linux go build -o /ws-api ./api/main.go ./api/server.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /ws-api ./api/
 
 # STAGE 2: Run
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root/
+WORKDIR /app
 
 # Copy the binary from the builder stage
 COPY --from=builder /ws-api .
@@ -30,8 +30,9 @@ COPY --from=builder /ws-api .
 # Copy your private key and migrations if they aren't embedded
 COPY db/migrations ./db/migrations
 
+
 # Expose the API port
-EXPOSE 8081
+EXPOSE 8080
 
 # Run the binary
 CMD ["./ws-api"]

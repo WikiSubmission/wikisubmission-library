@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WikiSubmission Library API</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255,255,255,0.08);
+            --code-bg: #000000;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+        .btn-outline { border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 4rem 0;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .feature-card i { color: var(--primary); margin-bottom: 1rem; }
+        .feature-card h3 { margin: 0.5rem 0; font-size: 1.1rem; }
+        .feature-card p { font-size: 0.9rem; color: var(--text-muted); margin: 0; }
+
+        section { margin-bottom: 4rem; }
+        h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+
+        .route-item {
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-family: monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border);
+        }
+
+        .method { color: #10b981; font-weight: bold; margin-right: 1rem; }
+        .path { color: #cbd5e1; }
+        .desc { color: var(--text-muted); font-size: 0.85rem; }
+
+        footer {
+            text-align: center;
+            padding: 4rem 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        code { background: var(--card-bg); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="hero">
+        <h1>WikiSubmission Library</h1>
+        <p>High-performance backend services powering the indexing and delivery of WikiSubmission assets.</p>
+        <div class="btn-group">
+            <a href="/explorer" class="btn btn-primary">
+                <i data-lucide="compass"></i> Open Explorer
+            </a>
+            <a href="https://github.com/WikiSubmission/ws-lib" class="btn btn-outline">
+                <i data-lucide="github"></i> View Source
+            </a>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="feature-card">
+            <i data-lucide="zap" size="24"></i>
+            <h3>High Speed</h3>
+            <p>PostgreSQL B-Tree and Trigram indices ensure metadata retrieval in milliseconds.</p>
+        </div>
+        <div class="feature-card">
+            <i data-lucide="layers" size="24"></i>
+            <h3>Smart Caching</h3>
+            <p>Multi-layer caching using Cloudflare Edge and Singleflight request deduplication.</p>
+        </div>
+        <div class="feature-card">
+            <i data-lucide="shield-check" size="24"></i>
+            <h3>Secure Delivery</h3>
+            <p>Automated CloudFront URL signing for private content with 1-hour expiration.</p>
+        </div>
+    </div>
+
+    <section id="architecture">
+        <h2>System Architecture</h2>
+        <p>This API bridges the gap between massive <strong>S3 Storage</strong> and the need for <strong>Real-time Search</strong>.</p>
+        <ul>
+            <li><strong>Backend:</strong> Go (Gin Gonic) with <code>singleflight</code> for thundering-herd protection.</li>
+            <li><strong>Database:</strong> PostgreSQL with <code>pg_trgm</code> for fuzzy matching.</li>
+            <li><strong>CDN:</strong> CloudFront integration for globally distributed asset delivery.</li>
+            <li><strong>Sync:</strong> Real-time S3 metadata updates via <strong>AWS SQS</strong>.</li>
+        </ul>
+    </section>
+
+    <section id="routes">
+        <h2>API Endpoints</h2>
+        
+        <div class="route-item">
+            <span><span class="method">GET</span> <span class="path">/explorer</span></span>
+            <span class="desc">Web interface for file browsing</span>
+        </div>
+
+        <div class="route-item">
+            <span><span class="method">GET</span> <span class="path">/file/*filepath</span></span>
+            <span class="desc">Direct access with smart redirect & cache</span>
+        </div>
+
+        <div class="route-item">
+            <span><span class="method">GET</span> <span class="path">/search?q={query}</span></span>
+            <span class="desc">Fuzzy search for S3 metadata</span>
+        </div>
+
+        <div class="route-item">
+            <span><span class="method">GET</span> <span class="path">/health</span></span>
+            <span class="desc">System health & DB connectivity</span>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 WikiSubmission. Licensed under MIT.</p>
+        <p>Contact: <a href="mailto:developer@wikisubmission.org" style="color: var(--primary);">developer@wikisubmission.org</a></p>
+    </footer>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+</body>
+</html>
