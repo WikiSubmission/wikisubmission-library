@@ -1,0 +1,77 @@
+{{/* Results Count Update */}}
+<div id="resultsCount" hx-swap-oob="true">
+    {{.TotalFiles}} Assets Found
+</div>
+
+{{/* Root Files */}}
+{{if .Directories.Files}}
+<div class="dir-section" data-dir="root">
+    <h3 style="color: var(--text-muted); font-size: 0.9rem; margin: 1rem 0; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="home" size="16"></i> Root Files
+    </h3>
+    <div class="file-grid">
+        {{range .Directories.Files}}
+            {{$ext := .Name | lastPathExtension}}
+            <div class="card" data-type="{{$ext}}" onclick="openPreview('{{.Key}}', '{{$ext}}', '{{.Name}}')">
+                <div class="preview-box">
+                    {{if or (eq $ext "jpg") (eq $ext "png") (eq $ext "webp") (eq $ext "gif") (eq $ext "jpeg")}}
+                        <img src="/file/{{.Key}}" class="preview-img" loading="lazy">
+                    {{else}}
+                        <i data-lucide="{{if eq $ext "pdf"}}file-text{{else}}file{{end}}" class="preview-icon" size="32"></i>
+                    {{end}}
+                </div>
+                <div class="card-content">
+                    <div class="card-title">{{.Name}}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="card-meta">{{formatBytes .Size}}</div>
+                        <button class="btn-copy-small" onclick="copyLink(event, '{{.Key}}')">
+                            <i data-lucide="copy" size="14"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+
+{{/* Directories */}}
+{{range $path, $dir := .Directories.Directories}}
+<div class="dir-section" data-dir="{{$dir.Name}}">
+    <h3 style="color: var(--text-muted); font-size: 0.9rem; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="folder" size="16"></i> {{$dir.Name}}
+    </h3>
+    <div class="file-grid">
+        {{range $dir.Files}}
+            {{$ext := .Name | lastPathExtension}}
+            <div class="card" data-type="{{$ext}}" onclick="openPreview('{{.Key}}', '{{$ext}}', '{{.Name}}')">
+                <div class="preview-box">
+                    {{if or (eq $ext "jpg") (eq $ext "png") (eq $ext "webp") (eq $ext "gif") (eq $ext "jpeg")}}
+                        <img src="/file/{{.Key}}" class="preview-img" loading="lazy">
+                    {{else}}
+                        <i data-lucide="{{if eq $ext "pdf"}}file-text{{else}}file{{end}}" class="preview-icon" size="32"></i>
+                    {{end}}
+                </div>
+                <div class="card-content">
+                    <div class="card-title">{{.Name}}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="card-meta">{{formatBytes .Size}}</div>
+                        <button class="btn-copy-small" onclick="copyLink(event, '{{.Key}}')">
+                            <i data-lucide="copy" size="14"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+
+{{/* Load More Area */}}
+{{if .HasMore}}
+<div class="load-more-container" id="loadMoreArea">
+    <button class="btn-load-more" id="loadMoreBtn" onclick="loadMore()">
+        Load More Results
+    </button>
+</div>
+{{end}}

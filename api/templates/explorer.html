@@ -263,6 +263,39 @@
         }
         
         @media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+
+        /* --- Folder Toggle Switch --- */
+        .group-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            background: var(--card-bg);
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        /* Simple switch style */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(14px); }
     </style>
 </head>
 <body>
@@ -286,45 +319,27 @@
 
         <main id="explorer-content">
             <div class="controls-bar">
-                <span id="resultsCount" style="color: var(--text-muted); font-size: 0.9rem;">
-                    {{.TotalFiles}} Assets Found
-                </span>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span id="resultsCount" style="color: var(--text-muted); font-size: 0.9rem;">
+                        {{.TotalFiles}} Assets Found
+                    </span>
+                    
+                    <label class="group-toggle-container">
+                        <span>Group by Folder</span>
+                        <label class="switch">
+                            <input type="checkbox" id="groupToggle" onchange="toggleGrouping()" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </label>
+                </div>
+
                 <div class="view-toggle">
                     <button class="toggle-btn active" id="gridBtn" onclick="setView('grid')"><i data-lucide="layout-grid" size="18"></i></button>
                     <button class="toggle-btn" id="listBtn" onclick="setView('list')"><i data-lucide="list" size="18"></i></button>
                 </div>
             </div>
 
-            {{if .Directories.Files}}
-            <div class="dir-section" data-dir="root">
-                <h3 style="color: var(--text-muted); font-size: 0.9rem; margin: 1rem 0; display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="home" size="16"></i> Root Files
-                </h3>
-                <div class="file-grid">
-                    {{range .Directories.Files}}
-                        {{$ext := .Name | lastPathExtension}}
-                        <div class="card" data-type="{{$ext}}" onclick="openPreview('{{.Key}}', '{{$ext}}', '{{.Name}}')">
-                            <div class="preview-box">
-                                {{if or (eq $ext "jpg") (eq $ext "png") (eq $ext "webp") (eq $ext "gif") (eq $ext "jpeg")}}
-                                    <img src="/file/{{.Key}}" class="preview-img" loading="lazy">
-                                {{else}}
-                                    <i data-lucide="{{if eq $ext "pdf"}}file-text{{else}}file{{end}}" class="preview-icon" size="32"></i>
-                                {{end}}
-                            </div>
-                            <div class="card-content">
-                                <div class="card-title">{{.Name}}</div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div class="card-meta">{{formatBytes .Size}} • {{.Key}}</div>
-                                    <button class="btn-copy-small" onclick="copyLink(event, '{{.Key}}')">
-                                        <i data-lucide="copy" size="14"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    {{end}}
-                </div>
-            </div>
-            {{end}}
+          
 
             {{range $path, $dir := .Directories.Directories}}
             <div class="dir-section" data-dir="{{$dir.Name}}">
@@ -585,6 +600,56 @@
                 console.log("Extended results loaded");
             }
         });
+
+        function toggleGrouping() {
+            const isGrouped = document.getElementById('groupToggle').checked;
+            const headers = document.querySelectorAll('.dir-section h3');
+            const sections = document.querySelectorAll('.dir-section');
+
+            headers.forEach(h => h.style.display = isGrouped ? 'flex' : 'none');
+            sections.forEach(s => {
+                s.style.margin = isGrouped ? '' : '0';
+                s.style.padding = isGrouped ? '' : '0';
+            });
+            localStorage.setItem('ws_group_pref', isGrouped);
+        }
+
+        // Restore preference on load
+        if (localStorage.getItem('ws_group_pref') === 'false') {
+            document.getElementById('groupToggle').checked = false;
+            toggleGrouping();
+        }
+
+        // function filterByPath(path) {
+        //     const sections = document.querySelectorAll('.dir-section');
+        //     const breadcrumbNav = document.getElementById('breadcrumbNav');
+            
+        //     // 1. Filter the sections
+        //     sections.forEach(s => {
+        //         const dirAttr = s.getAttribute('data-dir');
+        //         // Show everything if path is empty (Root), otherwise match path
+        //         if (!path || dirAttr === path || dirAttr === 'root') {
+        //             s.style.display = 'block';
+        //         } else {
+        //             s.style.display = 'none';
+        //         }
+        //     });
+
+        //     // 2. Build Breadcrumbs
+        //     let html = `<span class="breadcrumb-item" onclick="filterByPath('')"><i data-lucide="home" size="16"></i></span>`;
+        //     if (path) {
+        //         const parts = path.split('/');
+        //         let currentPath = '';
+        //         parts.forEach((part, i) => {
+        //             currentPath += (i === 0 ? '' : '/') + part;
+        //             html += ` <span class="breadcrumb-separator">/</span> `;
+        //             html += `<span class="breadcrumb-item" onclick="filterByPath('${currentPath}')">${part}</span>`;
+        //         });
+        //     }
+        //     breadcrumbNav.innerHTML = html;
+        //     lucide.createIcons();
+        // }
+    
     </script>
 </body>
 </html>

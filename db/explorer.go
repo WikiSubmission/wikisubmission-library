@@ -118,7 +118,6 @@ func BuildExplorerData(query string, objects []S3Object) ExplorerData {
 	
 	data := ExplorerData{
 		Query: query,
-		TotalFiles: len(objects),
 		Directories: DirectoryMap{
 			Files:       []FileEntry{},
 			Directories: make(map[string]*DirectoryInfo),
@@ -131,6 +130,9 @@ func BuildExplorerData(query string, objects []S3Object) ExplorerData {
 	)
 
 	for _, obj := range objects {
+		if strings.HasSuffix(obj.FileKey, "/") || obj.FileKey == "" {
+            continue
+        }
 		// Split "folder/file.png" into ["folder", "file.png"]
 		parts := strings.Split(obj.FileKey, "/")
 		fileName := parts[len(parts)-1]
@@ -170,6 +172,7 @@ func BuildExplorerData(query string, objects []S3Object) ExplorerData {
 		})
 	}
 
+	data.TotalFiles = len(objects)
 	data.TotalDirs = len(data.Directories.Directories)
 
 	slog.Info("Finished building explorer tree",

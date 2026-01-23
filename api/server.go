@@ -113,9 +113,10 @@ func StartServer(database *db.DB) {
 
 	// 5. Server Configuration
 	port := os.Getenv("PORT")
-	if port == "" {
-    port = "8080" // fallback for local
-}
+		if port == "" {
+			port = "8080" 
+		}
+	slog.Info("Starting API Server", "port", port)
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%v", port),
 		Handler: r,

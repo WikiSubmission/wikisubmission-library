@@ -65,6 +65,5 @@ func main() {
 
 	// 7. Start the HTTP Server
 	// This blocks the main thread. Graceful shutdown is handled inside StartServer.
-	slog.Info("Starting API Server", "port", 8081)
 	StartServer(database)
 }
