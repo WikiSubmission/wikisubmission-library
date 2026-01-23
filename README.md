@@ -6,7 +6,7 @@ Source code repository for the backend services powering [wikisubmission.org](ht
 
 This project provides a high-performance API designed to index and serve files stored in Amazon S3. It maintains a local metadata index in PostgreSQL to enable fast, fuzzy search capabilities that are natively unavailable in S3.
 
-## 🏗 System Architecture
+## System Architecture
 
 The system is designed for high-performance metadata retrieval using the following stack:
 * **Backend**: Go (Gin Gonic) with structured JSON logging (`slog`).
@@ -17,7 +17,7 @@ The system is designed for high-performance metadata retrieval using the followi
 
 ---
 
-## 🛠 Database Initialization
+## Database Initialization
 
 The following SQL commands must be executed manually by a superuser to prepare the PostgreSQL environment before the application can start:
 
@@ -42,7 +42,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ws_lib_backend;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO ws_lib_backend;
 ```
 
-## 💻 Local Setup
+## Local Setup
 1. **Prerequisites**
 - Go 1.22+
 - PostgreSQL 15+
