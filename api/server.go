@@ -23,6 +23,7 @@ import (
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 
+//go:embed templates/*.html
 var templateFS embed.FS
 
 // StartServer initializes the HTTP server, sets up middleware,
@@ -37,7 +38,7 @@ func StartServer(database *db.DB) {
 
 	r := gin.Default()
 
-	r.SetFuncMap(template.FuncMap{
+	funcMap := template.FuncMap{
 		"lastPathExtension": func(filename string) string {
 			ext := filepath.Ext(filename)
 			return strings.TrimPrefix(strings.ToLower(ext), ".")
@@ -52,10 +53,10 @@ func StartServer(database *db.DB) {
 			}
 			return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 		},
-	})
-
-	templ := template.Must(template.ParseFS(templateFS, "templates/*.html"))
-    r.SetHTMLTemplate(templ)
+	}
+	templ := template.Must(template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html"))
+    
+    r.SetHTMLTemplate(templ)	
 	// Configure Trusted Proxies from Env
 	proxiesEnv := os.Getenv("TRUSTED_PROXIES")
 	if proxiesEnv != "" {
