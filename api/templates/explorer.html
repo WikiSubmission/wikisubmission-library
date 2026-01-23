@@ -264,6 +264,42 @@
         
         @media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
 
+        /* --- Breadcrumbs --- */
+        .breadcrumbs {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .breadcrumb-item {
+            display: inline-flex;  /* Allows the items to sit side-by-side */
+            align-items: center;   /* Vertically centers the icon and text */
+            gap: 6px;              /* Adds a small space between the icon and text */
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        /* Optional: Ensure the SVG doesn't shrink or misalign */
+        .breadcrumb-item svg {
+            display: block;
+            flex-shrink: 0;
+        }
+        .breadcrumb-item:hover {
+                color: var(--primary);
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+            /* The separator (chevron) */
+            .breadcrumb-separator {
+                display: flex;
+                align-items: center;
+                opacity: 0.4;
+                padding: 0 2px;
+            }
 
         /* --- Folder Toggle Switch --- */
         .group-toggle-container {
@@ -296,111 +332,256 @@
         }
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(14px); }
+
+
+        /* --- New Layout Components --- */
+.main-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    max-width: 1440px;
+    margin: -4rem auto 0; /* Deep overlap into header */
+    gap: 1.5rem;
+    padding: 0 1.5rem 4rem;
+    position: relative;
+    z-index: 10;
+}
+
+/* Sidebar as a clean navigation rail */
+.sidebar {
+    position: sticky;
+    top: 2rem;
+    height: fit-content;
+    padding: 0.5rem; /* Less padding for inner buttons */
+}
+
+.sidebar-title {
+    padding: 0 1rem;
+    margin: 1.5rem 0 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+/* Glass effect for the main container */
+.explorer-surface {
+    background: var(--card-bg);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    min-height: 600px;
+}
+
+/* Controls bar refinement */
+.controls-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.03);
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border);
+}
+
+/* Breadcrumbs as an pill-shaped bar */
+.breadcrumbs-bar {
+    background: rgba(0,0,0,0.2);
+    padding: 0.6rem 1.2rem;
+    border-radius: 50px;
+    margin-bottom: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    justify-items: center;
+}
+
+/* Enhanced Filter Buttons */
+.filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    margin-bottom: 4px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: white;
+}
+
+.filter-btn.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* --- Empty State --- */
+.empty-state {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 2rem;
+    text-align: center;
+}
+
+.empty-state-icon {
+    background: rgba(255, 255, 255, 0.03);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+
+.empty-state h3 { margin: 0 0 0.5rem 0; color: #fff; }
+.empty-state p { margin: 0; color: var(--text-muted); font-size: 0.9rem; }
     </style>
 </head>
 <body>
-    <div id="toast-container"></div>
-    <header class="page-header">
-        <h1 class="header-title">WikiSubmission</h1>
-        <form action="/explorer" method="GET" class="search-container">
-            <input type="text" name="q" value="{{.Query}}" class="main-search-input" placeholder="Search files (e.g., 'contract', 'logo')...">
-        </form>
-    </header>
+  <div id="toast-container"></div>
 
-    <div class="main-layout">
-        <aside class="sidebar">
-            <h4 style="margin: 0 0 1rem; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">File Types</h4>
-            <div id="filterContainer">
-                <button class="filter-btn active" onclick="filterFiles('all', this)">
-                    <span>All Files</span>
-                </button>
-            </div>
-        </aside>
+<header class="page-header">
+    <h1 class="header-title">WikiSubmission</h1>
+    <form action="/explorer" method="GET" class="search-container">
+        <input type="text" name="q" value="{{.Query}}" class="main-search-input" placeholder="Search files...">
+    </form>
+</header>
 
-        <main id="explorer-content">
-            <div class="controls-bar">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span id="resultsCount" style="color: var(--text-muted); font-size: 0.9rem;">
-                        {{.TotalFiles}} Assets Found
-                    </span>
-                    
-                    <label class="group-toggle-container">
-                        <span>Group by Folder</span>
-                        <label class="switch">
-                            <input type="checkbox" id="groupToggle" onchange="toggleGrouping()" checked>
-                            <span class="slider"></span>
-                        </label>
+<div class="main-layout">
+    <aside class="sidebar">
+        <div class="sidebar-title">Library</div>
+        <div id="filterContainer">
+            <button class="filter-btn active" onclick="filterFiles('all', this)">
+                <span style="display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="layers" size="18"></i> All Files
+                </span>
+            </button>
+        </div>
+        
+        <div class="sidebar-title">Actions</div>
+        <button class="filter-btn" onclick="window.location.reload()">
+            <span style="display:flex; align-items:center; gap:8px;">
+                <i data-lucide="refresh-cw" size="18"></i> Sync S3
+            </span>
+        </button>
+    </aside>
+
+    <main id="explorer-content" class="explorer-surface">
+        <div class="breadcrumbs-bar">
+            <nav class="breadcrumbs" id="breadcrumbNav">
+                <span class="breadcrumb-item" onclick="filterByPath('')"><i data-lucide="home" size="16"></i> Home</span>
+            </nav>
+        </div>
+
+        <div class="controls-bar">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <span id="resultsCount" style="color: var(--text-main); font-weight: 600; font-size: 0.95rem;">
+                    {{.TotalFiles}} Assets
+                </span>
+                <div style="width: 1px; height: 24px; background: var(--border);"></div>
+                <label class="group-toggle-container" style="border:none; background:transparent; padding:0;">
+                    <span style="font-weight: 500;">Folders</span>
+                    <label class="switch">
+                        <input type="checkbox" id="groupToggle" onchange="toggleGrouping()" checked>
+                        <span class="slider"></span>
                     </label>
-                </div>
-
-                <div class="view-toggle">
-                    <button class="toggle-btn active" id="gridBtn" onclick="setView('grid')"><i data-lucide="layout-grid" size="18"></i></button>
-                    <button class="toggle-btn" id="listBtn" onclick="setView('list')"><i data-lucide="list" size="18"></i></button>
-                </div>
+                </label>
             </div>
+            <div class="view-toggle">
+                <button class="toggle-btn active" id="gridBtn" onclick="setView('grid')"><i data-lucide="layout-grid" size="18"></i></button>
+                <button class="toggle-btn" id="listBtn" onclick="setView('list')"><i data-lucide="list" size="18"></i></button>
+            </div>
+        </div>
 
-          
+        <div id="emptyState" class="empty-state">
+            <div class="empty-state-icon">
+                <i data-lucide="search-x" size="40"></i>
+            </div>
+            <h3>No files found</h3>
+            <p>Try adjusting your search or filters to find what you're looking for.</p>
+        </div>
 
-            {{range $path, $dir := .Directories.Directories}}
-            <div class="dir-section" data-dir="{{$dir.Name}}">
-                <h3 style="color: var(--text-muted); font-size: 0.9rem; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="folder" size="16"></i> {{$dir.Name}}
-                </h3>
-                <div class="file-grid" id="grid-{{$dir.Name}}">
-                    {{range $dir.Files}}
-                        {{$ext := .Name | lastPathExtension}}
-                        <div class="card" data-type="{{$ext}}" onclick="openPreview('{{.Key}}', '{{$ext}}', '{{.Name}}')">
-                            <div class="preview-box">
-                                {{if or (eq $ext "jpg") (eq $ext "png") (eq $ext "webp") (eq $ext "gif") (eq $ext "jpeg")}}
-                                    <img src="/file/{{.Key}}" class="preview-img" loading="lazy">
-                                {{else}}
-                                    <i data-lucide="{{if eq $ext "pdf"}}file-text{{else}}file{{end}}" class="preview-icon" size="32"></i>
-                                {{end}}
-                            </div>
-                            <div class="card-content">
-                                <div class="card-title">{{.Name}}</div>
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div class="card-meta">{{formatBytes .Size}} • {{.Key}}</div>
-                                    <button class="btn-copy-small" onclick="copyLink(event, '{{.Key}}')">
-                                        <i data-lucide="copy" size="14"></i>
-                                    </button>
-                                </div>
+        {{if .Directories.Files}}
+        <div class="dir-section" data-dir="root">
+            <h3 style="color: var(--text-muted); font-size: 0.9rem; margin: 1rem 0; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="home" size="16"></i> Root Files
+            </h3>
+            <div class="file-grid">
+                {{range .Directories.Files}}
+                    {{$ext := .Name | lastPathExtension}}
+                    <div class="card" data-type="{{$ext}}" onclick="openPreview('{{.Key}}', '{{$ext}}', '{{.Name}}')">
+                        <div class="preview-box">
+                            {{if or (eq $ext "jpg") (eq $ext "png") (eq $ext "webp") (eq $ext "gif") (eq $ext "jpeg")}}
+                                <img src="/file/{{.Key}}" class="preview-img" loading="lazy">
+                            {{else}}
+                                <i data-lucide="{{if eq $ext "pdf"}}file-text{{else}}file{{end}}" class="preview-icon" size="32"></i>
+                            {{end}}
+                        </div>
+                        <div class="card-content">
+                            <div class="card-title">{{.Name}}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div class="card-meta">{{formatBytes .Size}}</div>
+                                <button class="btn-copy-small" onclick="copyLink(event, '{{.Key}}')"><i data-lucide="copy" size="14"></i></button>
                             </div>
                         </div>
-                    {{end}}
-                </div>
+                    </div>
+                {{end}}
             </div>
-            {{end}}
-
-            {{if .HasMore}}
-            <div class="load-more-container" id="loadMoreArea">
-                <button class="btn-load-more" id="loadMoreBtn" onclick="loadMore()">
-                    Load More Results
-                </button>
-            </div>
-            {{end}}
-        </main>
-    </div>
-
-    <div id="previewModal" class="modal-overlay" onclick="if(event.target === this) closePreview()">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span id="modalTitle" style="font-weight: 600;">Preview</span>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button id="modalCopyBtn" class="btn-download" style="background: var(--card-bg); border: 1px solid var(--border);">
-                        <i data-lucide="copy" size="16"></i> Copy Link
-                    </button>
-                    <a id="modalDownload" href="#" target="_blank" style="text-decoration: none;">
-                        <button class="btn-download">
-                            <i data-lucide="download" size="16"></i> Download
-                        </button>
-                    </a>
-                    <button class="btn-close" onclick="closePreview()"><i data-lucide="x" size="24"></i></button>
-                </div>
-            </div>
-            <div id="modalBody" class="modal-body"></div>
         </div>
-    </div>
+        {{end}}
+
+        {{range $path, $dir := .Directories.Directories}}
+        <div class="dir-section" data-dir="{{$dir.Name}}">
+            <h3 onclick="filterByPath('{{$path}}')" style="cursor:pointer; color: var(--text-muted); font-size: 0.9rem; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="folder" size="16"></i> {{$dir.Name}}
+            </h3>
+            <div class="file-grid">
+                {{range $dir.Files}}
+                    {{$ext := .Name | lastPathExtension}}
+                    <div class="card" data-type="{{$ext}}" onclick="openPreview('{{.Key}}', '{{$ext}}', '{{.Name}}')">
+                        <div class="preview-box">
+                            {{if or (eq $ext "jpg") (eq $ext "png") (eq $ext "webp") (eq $ext "gif") (eq $ext "jpeg")}}
+                                <img src="/file/{{.Key}}" class="preview-img" loading="lazy">
+                            {{else}}
+                                <i data-lucide="{{if eq $ext "pdf"}}file-text{{else}}file{{end}}" class="preview-icon" size="32"></i>
+                            {{end}}
+                        </div>
+                        <div class="card-content">
+                            <div class="card-title">{{.Name}}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div class="card-meta">{{formatBytes .Size}}</div>
+                                <button class="btn-copy-small" onclick="copyLink(event, '{{.Key}}')"><i data-lucide="copy" size="14"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+
+        {{if .HasMore}}
+        <div class="load-more-container" id="loadMoreArea">
+            <button class="btn-load-more" id="loadMoreBtn" onclick="loadMore()">Load More Results</button>
+        </div>
+        {{end}}
+    </main>
+</div>
 
     <script>
         lucide.createIcons();
@@ -488,23 +669,38 @@
             document.getElementById('resultsCount').innerText = `${cards.length} Assets Found`;
         });
 
-        function filterFiles(type, btn) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const cards = document.querySelectorAll('.card');
-            let count = 0;
-            cards.forEach(c => {
-                const match = type === 'all' || c.getAttribute('data-type') === type;
-                c.style.display = match ? (document.getElementById('listBtn').classList.contains('active') ? 'flex' : 'flex') : 'none';
-                if(match) count++;
-            });
-            // Hide empty sections
-            document.querySelectorAll('.dir-section').forEach(s => {
-                const hasVis = Array.from(s.querySelectorAll('.card')).some(c => c.style.display !== 'none');
-                s.style.display = hasVis ? 'block' : 'none';
-            });
-            document.getElementById('resultsCount').innerText = `${count} Assets`;
-        }
+        function updateEmptyState() {
+    const visibleCards = Array.from(document.querySelectorAll('.card')).filter(c => c.style.display !== 'none');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (visibleCards.length === 0) {
+        emptyState.style.display = 'flex';
+        document.getElementById('resultsCount').innerText = "0 Assets";
+    } else {
+        emptyState.style.display = 'none';
+        document.getElementById('resultsCount').innerText = `${visibleCards.length} Assets`;
+    }
+}
+
+// Update your existing filterFiles function to call the helper
+function filterFiles(type, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const cards = document.querySelectorAll('.card');
+    
+    cards.forEach(c => {
+        const match = type === 'all' || c.getAttribute('data-type') === type;
+        c.style.display = match ? 'flex' : 'none';
+    });
+
+    // Hide empty directory sections
+    document.querySelectorAll('.dir-section').forEach(s => {
+        const hasVis = Array.from(s.querySelectorAll('.card')).some(c => c.style.display !== 'none');
+        s.style.display = hasVis ? 'block' : 'none';
+    });
+
+    updateEmptyState(); // <--- Add this
+}
 
         function showToast(message) {
             const container = document.getElementById('toast-container');
@@ -620,36 +816,33 @@
             toggleGrouping();
         }
 
-        // function filterByPath(path) {
-        //     const sections = document.querySelectorAll('.dir-section');
-        //     const breadcrumbNav = document.getElementById('breadcrumbNav');
+        function filterByPath(path) {
+            const sections = document.querySelectorAll('.dir-section');
+            const breadcrumbNav = document.getElementById('breadcrumbNav');
             
-        //     // 1. Filter the sections
-        //     sections.forEach(s => {
-        //         const dirAttr = s.getAttribute('data-dir');
-        //         // Show everything if path is empty (Root), otherwise match path
-        //         if (!path || dirAttr === path || dirAttr === 'root') {
-        //             s.style.display = 'block';
-        //         } else {
-        //             s.style.display = 'none';
-        //         }
-        //     });
+            sections.forEach(s => {
+                const dirAttr = s.getAttribute('data-dir');
+                if (!path || dirAttr === path || dirAttr === 'root') {
+                    s.style.display = 'block';
+                } else {
+                    s.style.display = 'none';
+                }
+            });
 
-        //     // 2. Build Breadcrumbs
-        //     let html = `<span class="breadcrumb-item" onclick="filterByPath('')"><i data-lucide="home" size="16"></i></span>`;
-        //     if (path) {
-        //         const parts = path.split('/');
-        //         let currentPath = '';
-        //         parts.forEach((part, i) => {
-        //             currentPath += (i === 0 ? '' : '/') + part;
-        //             html += ` <span class="breadcrumb-separator">/</span> `;
-        //             html += `<span class="breadcrumb-item" onclick="filterByPath('${currentPath}')">${part}</span>`;
-        //         });
-        //     }
-        //     breadcrumbNav.innerHTML = html;
-        //     lucide.createIcons();
-        // }
-    
-    </script>
+            let html = `<span class="breadcrumb-item" onclick="filterByPath('')"><i data-lucide="home" size="16"></i> Home</span>`;
+            if (path) {
+                const parts = path.split('/');
+                let currentPath = '';
+                parts.forEach((part, i) => {
+                    currentPath += (i === 0 ? '' : '/') + part;
+                    html += ` <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="14"></i></span> `;
+                    html += `<span class="breadcrumb-item" onclick="filterByPath('${currentPath}')">${part}</span>`;
+                });
+            }
+            breadcrumbNav.innerHTML = html;
+            updateEmptyState();
+            lucide.createIcons(); // Vital to render icons after innerHTML change
+        }
+</script>
 </body>
 </html>
