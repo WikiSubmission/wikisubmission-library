@@ -124,3 +124,99 @@ func (db *DB) SetTrgmStrictness(ctx context.Context, val float64) error {
 	slog.Info("Similarity threshold updated", slog.Float64("new_threshold", val))
 	return nil
 }
+
+
+// GetObjectByKey retrieves a single S3 object from the database using an exact match on the file_key.
+//
+// Performance:
+// This method performs an O(log n) lookup using the standard B-tree index (idx_s3_objects_key_btree).
+// It is significantly faster than the trigram search and should be used for direct file access
+// via permanent links or specific path requests.
+//
+// Returns:
+// - (*S3Object, nil) if a match is found.
+// - (nil, pgx.ErrNoRows) if no exact match exists.
+// - (nil, error) for database connection or scanning issues.
+func (db *DB) GetObjectByKey(ctx context.Context, key string) (*S3Object, error) {
+    // We use a LIMIT 1 as an optimization, though file_key should be unique.
+    query := `
+        SELECT id, file_key, file_size, last_modified, etag 
+        FROM s3_objects 
+        WHERE file_key = $1 
+        LIMIT 1;
+    `
+    var obj S3Object
+    var lastMod time.Time
+
+    // QueryRow is used here because we expect exactly one (or zero) results.
+    err := db.Pool.QueryRow(ctx, query, key).Scan(
+        &obj.ID, &obj.FileKey, &obj.FileSize, &lastMod, &obj.ETag,
+    )
+    if err != nil {
+        return nil, err
+    }
+
+    // Format the time.Time into an RFC3339 string for JSON consistency across the API.
+    obj.LastModified = lastMod.Format(time.RFC3339)
+    return &obj, nil
+}
+
+// GetAllObjects retrieves every file in the database. 
+// It is optimized for the initial "Cache Miss" scenario where we need to build the full explorer tree.
+// Unlike SearchObjects, it does not calculate similarity scores.
+func (db *DB) GetAllObjects(ctx context.Context) ([]S3Object, error) {
+    start := time.Now()
+
+    // Initialize as empty slice so JSON returns [] instead of null if empty
+    results := []S3Object{}
+
+    // We don't need a transaction or custom threshold settings here,
+    // just a standard connection acquisition.
+    conn, err := db.Pool.Acquire(ctx)
+    if err != nil {
+        return nil, err
+    }
+    defer conn.Release()
+
+    // Simple SELECT, ordered alphabetically to make the resulting tree deterministic
+    query := `
+        SELECT id, file_key, file_size, last_modified, etag
+        FROM s3_objects
+        ORDER BY file_key ASC;
+    `
+
+    rows, err := conn.Query(ctx, query)
+    if err != nil {
+        slog.Error("Failed to fetch all objects", slog.Any("error", err))
+        return nil, fmt.Errorf("query failed: %w", err)
+    }
+    defer rows.Close()
+
+    for rows.Next() {
+        var obj S3Object
+        var lastMod time.Time
+
+        // Note: We do NOT scan 'Similarity' here because it doesn't exist in this query.
+        // It will default to 0.0 in the struct, which is correct for a non-search view.
+        err := rows.Scan(&obj.ID, &obj.FileKey, &obj.FileSize, &lastMod, &obj.ETag)
+        if err != nil {
+            slog.Error("Failed to scan object row", slog.Any("error", err))
+            return nil, fmt.Errorf("failed to scan row: %w", err)
+        }
+
+        obj.LastModified = lastMod.Format(time.RFC3339)
+        results = append(results, obj)
+    }
+
+    // Check for errors that occurred during iteration
+    if err := rows.Err(); err != nil {
+        return nil, fmt.Errorf("row iteration error: %w", err)
+    }
+
+    slog.Info("Fetched all objects",
+        slog.Int("count", len(results)),
+        slog.Duration("latency", time.Since(start)),
+    )
+
+    return results, nil
+}

@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -32,6 +34,24 @@ func StartServer(database *db.DB) {
 
 	r := gin.Default()
 
+	r.SetFuncMap(template.FuncMap{
+		"lastPathExtension": func(filename string) string {
+			ext := filepath.Ext(filename)
+			return strings.TrimPrefix(strings.ToLower(ext), ".")
+		},
+		"formatBytes": func(b int64) string {
+			const unit = 1024
+			if b < unit { return fmt.Sprintf("%d B", b) }
+			div, exp := int64(unit), 0
+			for n := b / unit; n >= unit; n /= unit {
+				div *= unit
+				exp++
+			}
+			return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "KMGTPE"[exp])
+		},
+	})
+
+	r.LoadHTMLGlob("templates/*")
 	// Configure Trusted Proxies from Env
 	proxiesEnv := os.Getenv("TRUSTED_PROXIES")
 	if proxiesEnv != "" {
@@ -52,6 +72,8 @@ func StartServer(database *db.DB) {
 
 	// 4. API Routes
 	r.GET("/search", tollbooth_gin.LimitHandler(limiter), handlers.SearchHandler(database, signer))
+	r.GET("/file/*filepath", handlers.FileHandler(database, signer))
+	r.GET("/explorer", handlers.ExplorerHandler(database))
 	
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "alive"})

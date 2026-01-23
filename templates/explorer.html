@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WikiSubmission Explorer</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --header-bg: #1e1b4b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255,255,255,0.08);
+            --modal-backdrop: rgba(0, 0, 0, 0.85);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* --- Header --- */
+        .page-header {
+            background: linear-gradient(to bottom, #1e1b4b, #0f172a);
+            padding: 4rem 1.5rem 6rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-title { font-size: 2.5rem; font-weight: 800; margin: 0; letter-spacing: -0.025em; color: white; }
+
+        .search-container { max-width: 600px; margin: 2rem auto 0; position: relative; }
+        .main-search-input {
+            width: 100%; padding: 1rem 1.5rem; border-radius: 12px;
+            border: 1px solid var(--border); background: rgba(255,255,255,0.05);
+            color: white; font-size: 1rem; outline: none; transition: 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .main-search-input:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
+
+        /* --- Layout --- */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            max-width: 1400px;
+            margin: -3rem auto 0; /* Pull up into header */
+            gap: 2rem;
+            padding: 0 2rem 4rem;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            position: sticky; top: 2rem; height: fit-content;
+            background: var(--card-bg); padding: 1.25rem; border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .filter-btn {
+            display: flex; justify-content: space-between; width: 100%; padding: 0.75rem;
+            background: transparent; border: 1px solid transparent; border-radius: 8px;
+            color: var(--text-muted); cursor: pointer; font-size: 0.9rem; transition: 0.2s;
+        }
+        .filter-btn:hover { background: rgba(255,255,255,0.05); color: white; }
+        .filter-btn.active { background: rgba(99, 102, 241, 0.1); color: var(--primary); border-color: rgba(99, 102, 241, 0.2); }
+
+        /* --- Controls --- */
+        .controls-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.5rem; padding: 0 0.5rem;
+        }
+        .view-toggle { background: var(--card-bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); display: flex; gap: 4px; }
+        .toggle-btn {
+            background: transparent; border: none; color: var(--text-muted);
+            padding: 6px; border-radius: 6px; cursor: pointer; display: flex;
+        }
+        .toggle-btn.active { background: var(--primary); color: white; }
+
+        /* --- Grid View --- */
+        .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
+        
+        .card {
+            background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border);
+            overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
+            display: flex; flex-direction: column; cursor: pointer;
+        }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); border-color: var(--primary); }
+
+        .preview-box {
+            height: 160px; background: #000; position: relative;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .preview-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: 0.3s; }
+        .card:hover .preview-img { opacity: 1; transform: scale(1.05); }
+        .preview-icon { color: var(--text-muted); opacity: 0.5; }
+        .card-content { padding: 1rem; }
+        .card-title { font-weight: 600; color: #fff; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-meta { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+
+        /* --- List View Overrides --- */
+        .file-grid.list-view { grid-template-columns: 1fr; gap: 0.5rem; }
+        .file-grid.list-view .card {
+            flex-direction: row; align-items: center; height: 60px; padding: 0 1rem;
+            transform: none; border-radius: 8px;
+        }
+        .file-grid.list-view .preview-box {
+            width: 40px; height: 40px; border-radius: 6px; background: rgba(255,255,255,0.05); margin-right: 1rem; flex-shrink: 0;
+        }
+        .file-grid.list-view .preview-icon { transform: scale(0.6); }
+        .file-grid.list-view .card-content { padding: 0; flex: 1; display: flex; align-items: center; justify-content: space-between; min-width: 0; }
+        .file-grid.list-view .card-meta { display: none; } /* Hide path in list view for cleanliness */
+        .file-grid.list-view .card-actions { margin-top: 0; opacity: 0; transition: 0.2s; }
+        .file-grid.list-view .card:hover .card-actions { opacity: 1; }
+
+        /* --- Modal (Preview) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--modal-backdrop); backdrop-filter: blur(5px);
+            z-index: 2000; display: none; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        
+        .modal-content {
+            background: var(--card-bg); max-width: 90vw; max-height: 90vh;
+            border-radius: 12px; padding: 0; position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex; flex-direction: column;
+        }
+        .modal-header {
+            padding: 1rem; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-body {
+            padding: 0; overflow: hidden; display: flex; justify-content: center; align-items: center;
+            background: #000; border-radius: 0 0 12px 12px; min-width: 300px; min-height: 200px;
+        }
+        .modal-body img { max-width: 100%; max-height: 80vh; object-fit: contain; }
+        .modal-body iframe { width: 80vw; height: 80vh; border: none; }
+        
+        .btn-close { background: transparent; border: none; color: white; cursor: pointer; }
+
+        .load-more-container {
+            display: flex;
+            justify-content: center;
+            padding: 2rem 0 4rem;
+        }
+
+        .btn-load-more {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-load-more:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-load-more:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .btn-download {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-download:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s;
+        }
+
+        .btn-close:hover {
+            color: white;
+        }
+        /* Improved Copy Button */
+        .btn-copy-small {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: var(--primary);
+            border-radius: 6px;
+            padding: 6px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-copy-small:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: #10b981; /* Green success color */
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.fade-out {
+            animation: fadeOut 0.5s ease-in forwards;
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(20px); }
+        }
+        
+        @media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+    </style>
+</head>
+<body>
+    <div id="toast-container"></div>
+    <header class="page-header">
+        <h1 class="header-title">WikiSubmission</h1>
+        <form action="/explorer" method="GET" class="search-container">
+            <input type="text" name="q" value="{{.Query}}" class="main-search-input" placeholder="Search files (e.g., 'contract', 'logo')...">
+        </form>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <h4 style="margin: 0 0 1rem; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted);">File Types</h4>
+            <div id="filterContainer">
+                <button class="filter-btn active" onclick="filterFiles('all', this)">
+                    <span>All Files</span>
+                </button>
+            </div>
+        </aside>
+
+        <main id="explorer-content">
+            <div class="controls-bar">
+                <span id="resultsCount" style="color: var(--text-muted); font-size: 0.9rem;">
+                    {{.TotalFiles}} Assets Found
+                </span>
+                <div class="view-toggle">
+                    <button class="toggle-btn active" id="gridBtn" onclick="setView('grid')"><i data-lucide="layout-grid" size="18"></i></button>
+                    <button class="toggle-btn" id="listBtn" onclick="setView('list')"><i data-lucide="list" size="18"></i></button>
+                </div>
+            </div>
+
+            {{if .Directories.Files}}
+            <div class="dir-section" data-dir="root">
+                <h3 style="color: var(--text-muted); font-size: 0.9rem; margin: 1rem 0; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="home" size="16"></i> Root Files
+                </h3>
+                <div class="file-grid">
+                    {{range .Directories.Files}}
+                        {{$ext := .Name | lastPathExtension}}
+                        <div class="card" data-type="{{$ext}}" onclick="openPreview('{{.Key}}', '{{$ext}}', '{{.Name}}')">
+                            <div class="preview-box">
+                                {{if or (eq $ext "jpg") (eq $ext "png") (eq $ext "webp") (eq $ext "gif") (eq $ext "jpeg")}}
+                                    <img src="/file/{{.Key}}" class="preview-img" loading="lazy">
+                                {{else}}
+                                    <i data-lucide="{{if eq $ext "pdf"}}file-text{{else}}file{{end}}" class="preview-icon" size="32"></i>
+                                {{end}}
+                            </div>
+                            <div class="card-content">
+                                <div class="card-title">{{.Name}}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div class="card-meta">{{formatBytes .Size}} • {{.Key}}</div>
+                                    <button class="btn-copy-small" onclick="copyLink(event, '{{.Key}}')">
+                                        <i data-lucide="copy" size="14"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+
+            {{range $path, $dir := .Directories.Directories}}
+            <div class="dir-section" data-dir="{{$dir.Name}}">
+                <h3 style="color: var(--text-muted); font-size: 0.9rem; margin: 2rem 0 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="folder" size="16"></i> {{$dir.Name}}
+                </h3>
+                <div class="file-grid" id="grid-{{$dir.Name}}">
+                    {{range $dir.Files}}
+                        {{$ext := .Name | lastPathExtension}}
+                        <div class="card" data-type="{{$ext}}" onclick="openPreview('{{.Key}}', '{{$ext}}', '{{.Name}}')">
+                            <div class="preview-box">
+                                {{if or (eq $ext "jpg") (eq $ext "png") (eq $ext "webp") (eq $ext "gif") (eq $ext "jpeg")}}
+                                    <img src="/file/{{.Key}}" class="preview-img" loading="lazy">
+                                {{else}}
+                                    <i data-lucide="{{if eq $ext "pdf"}}file-text{{else}}file{{end}}" class="preview-icon" size="32"></i>
+                                {{end}}
+                            </div>
+                            <div class="card-content">
+                                <div class="card-title">{{.Name}}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div class="card-meta">{{formatBytes .Size}} • {{.Key}}</div>
+                                    <button class="btn-copy-small" onclick="copyLink(event, '{{.Key}}')">
+                                        <i data-lucide="copy" size="14"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+
+            {{if .HasMore}}
+            <div class="load-more-container" id="loadMoreArea">
+                <button class="btn-load-more" id="loadMoreBtn" onclick="loadMore()">
+                    Load More Results
+                </button>
+            </div>
+            {{end}}
+        </main>
+    </div>
+
+    <div id="previewModal" class="modal-overlay" onclick="if(event.target === this) closePreview()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modalTitle" style="font-weight: 600;">Preview</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button id="modalCopyBtn" class="btn-download" style="background: var(--card-bg); border: 1px solid var(--border);">
+                        <i data-lucide="copy" size="16"></i> Copy Link
+                    </button>
+                    <a id="modalDownload" href="#" target="_blank" style="text-decoration: none;">
+                        <button class="btn-download">
+                            <i data-lucide="download" size="16"></i> Download
+                        </button>
+                    </a>
+                    <button class="btn-close" onclick="closePreview()"><i data-lucide="x" size="24"></i></button>
+                </div>
+            </div>
+            <div id="modalBody" class="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // 1. View Toggle Logic
+        function setView(view) {
+            const grids = document.querySelectorAll('.file-grid');
+            document.getElementById('gridBtn').classList.toggle('active', view === 'grid');
+            document.getElementById('listBtn').classList.toggle('active', view === 'list');
+            
+            grids.forEach(g => {
+                if(view === 'list') g.classList.add('list-view');
+                else g.classList.remove('list-view');
+            });
+            localStorage.setItem('ws_view_pref', view);
+        }
+
+        // Restore user preference
+        if(localStorage.getItem('ws_view_pref') === 'list') setView('list');
+
+        // 2. Preview Modal Logic
+        function openPreview(key, ext, name) {
+            const modal = document.getElementById('previewModal');
+            const body = document.getElementById('modalBody');
+            const title = document.getElementById('modalTitle');
+            const dlLink = document.getElementById('modalDownload');
+            document.getElementById('modalCopyBtn').onclick = () => copyLink(null, key);
+            const url = window.location.origin + '/file/' + key;
+
+            title.innerText = name;
+            dlLink.href = url;
+            body.innerHTML = '<div style="color:white">Loading...</div>'; // Spinner placeholder
+
+            modal.classList.add('show');
+
+            const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
+            const isPdf = ['pdf'].includes(ext);
+
+            if(isImg) {
+                body.innerHTML = `<img src="${url}" alt="${name}">`;
+            } else if (isPdf) {
+                body.innerHTML = `<iframe src="${url}"></iframe>`;
+            } else {
+                body.innerHTML = `
+                    <div style="text-align:center; padding: 3rem; color: #fff;">
+                        <i data-lucide="file" size="48" style="margin-bottom:1rem; opacity:0.5"></i>
+                        <p>No preview available for .${ext}</p>
+                        <a href="${url}" target="_blank" style="color: var(--primary)">Download File</a>
+                    </div>
+                `;
+                lucide.createIcons();
+            }
+        }
+
+        function closePreview() {
+            const modal = document.getElementById('previewModal');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                document.getElementById('modalBody').innerHTML = ''; // Clear source to stop media
+            }, 300);
+        }
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") closePreview();
+        });
+
+        // 3. Filter Logic (Auto-Generate Sidebar)
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.card');
+            const types = {};
+            cards.forEach(c => {
+                const t = c.getAttribute('data-type') || 'other';
+                types[t] = (types[t] || 0) + 1;
+            });
+
+            const container = document.getElementById('filterContainer');
+            Object.keys(types).sort().forEach(type => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.onclick = () => filterFiles(type, btn);
+                btn.innerHTML = `<span>.${type.toUpperCase()}</span><span style="opacity:0.5">${types[type]}</span>`;
+                container.appendChild(btn);
+            });
+            document.getElementById('resultsCount').innerText = `${cards.length} Assets Found`;
+        });
+
+        function filterFiles(type, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const cards = document.querySelectorAll('.card');
+            let count = 0;
+            cards.forEach(c => {
+                const match = type === 'all' || c.getAttribute('data-type') === type;
+                c.style.display = match ? (document.getElementById('listBtn').classList.contains('active') ? 'flex' : 'flex') : 'none';
+                if(match) count++;
+            });
+            // Hide empty sections
+            document.querySelectorAll('.dir-section').forEach(s => {
+                const hasVis = Array.from(s.querySelectorAll('.card')).some(c => c.style.display !== 'none');
+                s.style.display = hasVis ? 'block' : 'none';
+            });
+            document.getElementById('resultsCount').innerText = `${count} Assets`;
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<i data-lucide="check-circle" size="18"></i> ${message}`;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // Remove toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
+        async function copyLink(event, key) {
+            if (event) event.stopPropagation();
+            
+            const url = window.location.origin + '/file/' + key;
+            
+            try {
+                await navigator.clipboard.writeText(url);
+                
+                // 1. Button Feedback
+                const btn = event?.currentTarget || document.getElementById('modalCopyBtn');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = `<i data-lucide="check" size="16"></i>`;
+                if(btn.id === 'modalCopyBtn') btn.innerHTML += " Copied!";
+                
+                lucide.createIcons();
+                
+                // 2. Global Toast
+                showToast("Link copied to clipboard!");
+
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    lucide.createIcons();
+                }, 2000);
+            } catch (err) {
+                showToast("Failed to copy link");
+                console.error('Failed to copy!', err);
+            }
+        }
+
+        let currentLimit = 50;
+        // Updated Load More (Prevents button from disappearing)
+        async function loadMore() {
+            const btn = document.getElementById('loadMoreBtn');
+            const container = document.getElementById('explorer-content');
+            const query = new URLSearchParams(window.location.search).get('q') || '';
+            
+            currentLimit += 50;
+            btn.disabled = true;
+            btn.innerHTML = `Loading...`;
+
+            try {
+                const response = await fetch(`/explorer?q=${query}&limit=${currentLimit}&partial=true`);
+                const htmlFragment = await response.text();
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlFragment, 'text/html');
+                
+                // Target the content inside the fragment
+                const newContent = doc.getElementById('explorer-content');
+                const nextHasMore = doc.getElementById('loadMoreArea');
+
+                if (newContent) {
+                    // Replace inner content but keep the main ID intact
+                    container.innerHTML = newContent.innerHTML;
+                    lucide.createIcons();
+                    setView(localStorage.getItem('ws_view_pref') || 'grid');
+                }
+
+                // Handle button visibility
+                if (!nextHasMore && document.getElementById('loadMoreArea')) {
+                    document.getElementById('loadMoreArea').remove();
+                }
+            } catch (err) {
+                btn.innerText = "Error - Try Again";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "Load More Results";
+            }
+        }
+        
+        // Logic to auto-open the search bar if a limit is active
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('limit') && parseInt(urlParams.get('limit')) > 50) {
+                // Optional: Scroll to the bottom or show a toast that more items loaded
+                console.log("Extended results loaded");
+            }
+        });
+    </script>
+</body>
+</html>
