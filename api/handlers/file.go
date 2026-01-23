@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/internal/sync/singleflight"
 	"github.com/gin-gonic/gin"
 	"github.com/wikisubmission/ws-lib/aws"
 	"github.com/wikisubmission/ws-lib/db"
+	"golang.org/x/sync/singleflight"
 )
 
 var requestGroup singleflight.Group
@@ -43,7 +43,7 @@ func FileHandler(database *db.DB, signer *aws.CFSigner) gin.HandlerFunc {
 			return
 		}
 
-		result, err, _ := requestGroup.Do(fileKey, func() (interface{}, error) {
+		result, err, shared := requestGroup.Do(fileKey, func() (interface{}, error) {
 			return database.GetObjectByKey(c.Request.Context(), fileKey)
 		})
 
@@ -65,21 +65,8 @@ func FileHandler(database *db.DB, signer *aws.CFSigner) gin.HandlerFunc {
 			return
 		}
 
-		// Apply Cache-Control based on privacy
-		// We use signer.IsPrivate because it's the source of truth for path-based rules
-		if signer.IsPrivate(obj.FileKey) {
-			c.Header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
-			c.Header("Pragma", "no-cache")
-			c.Header("Expires", "0")
-		} else {
-			c.Header("Cache-Control", "public, max-age=31536000, immutable")
-			if obj.LastModified != "" {
-				c.Header("Last-Modified", obj.LastModified)
-			}
-			if obj.ETag != "" {
-				c.Header("ETag", obj.ETag)
-			}
-		}
+		SetCacheHeaders(c, signer, obj, false, shared)
+
 		// Redirect (303 See Other) to the signed storage URL.
 		c.Redirect(http.StatusSeeOther, finalURL)
 	}

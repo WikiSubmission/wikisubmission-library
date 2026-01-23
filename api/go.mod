@@ -9,7 +9,6 @@ replace github.com/wikisubmission/ws-lib/aws => ../aws
 replace github.com/wikisubmission/ws-lib/db => ../db
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/didip/tollbooth/v7 v7.0.2
 	github.com/didip/tollbooth_gin v0.0.0-20250404214326-bb1a1fc0384e
 	github.com/gin-gonic/gin v1.11.0
@@ -17,10 +16,12 @@ require (
 	github.com/wikisubmission/ws-lib/aws v0.0.0-00010101000000-000000000000
 	github.com/wikisubmission/ws-lib/db v0.0.0-00010101000000-000000000000
 	github.com/zsais/go-gin-prometheus v1.0.2
+	golang.org/x/sync v0.19.0
 )
 
 require (
 	github.com/aws/aws-lambda-go v1.52.0 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.41.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.32.7 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7 // indirect
@@ -80,7 +81,6 @@ require (
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
 	golang.org/x/tools v0.40.0 // indirect
