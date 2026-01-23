@@ -1,0 +1,52 @@
+services:
+  # 1. The Postgres Database
+  db:
+    image: postgres:16-alpine
+    container_name: ws-postgres
+    env_file:
+      - ./.env
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ws_lib_backend -d ws_lib_metadata"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Your Go API
+  api:
+    build: .
+    container_name: ws-api
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./aws/private_key.pem:/root/aws/private_key.pem:ro
+
+  # 3. Prometheus (Metrics Collector)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ws-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  # 4. Grafana (Dashboard)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ws-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:

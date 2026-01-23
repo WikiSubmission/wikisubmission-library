@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'ws-api'
+    static_configs:
+      - targets: ['api:8081'] # 'api' is the service name in docker-compose
