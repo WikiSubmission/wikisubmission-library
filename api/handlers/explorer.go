@@ -24,6 +24,8 @@ func ExplorerHandler(database *db.DB) gin.HandlerFunc {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 		defer cancel()
 
+		c.Header("Cache-Control", "public, max-age=60")
+
 		data, err := database.GetExplorerData(ctx, query, limit)
     
 		if err != nil {
