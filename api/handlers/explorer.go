@@ -36,10 +36,10 @@ func ExplorerHandler(database *db.DB) gin.HandlerFunc {
 
     	if isPartial {
 			// Render ONLY the file cards/directories fragment
-			c.HTML(200, "templates/explorer_fragments.html", data)
+			c.HTML(200, "explorer_fragments.html", data)
 			return
 		}
 
-		c.HTML(200, "templates/explorer.html", data)
+		c.HTML(200, "explorer.html", data)
 	}
 }
