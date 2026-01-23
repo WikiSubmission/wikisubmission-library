@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -67,8 +68,12 @@ func StartServer(database *db.DB) {
 	})
 
 	// 5. Server Configuration
+	port := os.Getenv("PORT")
+	if port == "" {
+    port = "8080" // fallback for local
+}
 	srv := &http.Server{
-		Addr:    ":8081",
+		Addr:    fmt.Sprintf(":%v", port),
 		Handler: r,
 	}
 
