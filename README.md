@@ -9,10 +9,10 @@ This project provides a high-performance API designed to index and serve files s
 ## System Architecture
 
 The system is designed for high-performance metadata retrieval using the following stack:
-* **Backend**: Go (Gin Gonic) with structured JSON logging (`slog`).
-* **Database**: PostgreSQL with `pg_trgm` for fuzzy search indexing.
-* **Storage**: Amazon S3 with real-time updates via AWS SQS.
-* **CDN**: Amazon CloudFront with support for signed URL access to private content.
+* **Backend**: Go (Gin Gonic) utilizing golang.org/x/sync/singleflight to prevent thundering herds on cache misses.
+* **Database**: PostgreSQL with pg_trgm for fuzzy search and B-Tree indices for exact-path lookups.
+* **CDN/Cache**: Cloudflare Edge caching for public assets and dynamic response deduplication.
+* **Storage**: Amazon S3 with CloudFront Signed URL support for /private/ pathing.
 * **Monitoring**: Prometheus metrics and Grafana dashboards.
 
 ---
@@ -87,7 +87,9 @@ The project includes a multi-stage Dockerfile and docker-compose.yaml for produc
 `docker-compose up --build -d`
 
 # API Endpoints
-- `GET /search?q={query}`: Fuzzy search for S3 objects.
+- `GET /explorer`: The main web interface for browsing files and directories.
+- `GET /file/*filepath`: Direct asset access. Automatically determines if content is public (cached) or private (signed) and redirects accordingly.
+- `GET /search?q={query}`: JSON API for fuzzy search on S3 metadata.
 - `GET /health`: System health check and DB connectivity status.
 - `GET /metrics` : Prometheus formatted performance metrics.
 
