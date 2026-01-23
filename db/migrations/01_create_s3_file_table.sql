@@ -8,4 +8,5 @@ CREATE TABLE IF NOT EXISTS s3_objects (
 );
 
 -- Index for fuzzy searching on the file paths
-CREATE INDEX IF NOT EXISTS idx_s3_objects_key_trgm ON s3_objects USING gin (file_key gin_trgm_ops);
+-- CREATE INDEX IF NOT EXISTS idx_s3_objects_key_trgm ON s3_objects USING gin (file_key gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_s3_objects_key_trgm_gist ON s3_objects USING gist (file_key gist_trgm_ops);

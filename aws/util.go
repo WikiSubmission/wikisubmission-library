@@ -34,6 +34,7 @@ func InitAWSConfig() (*s3.Client, *sqs.Client, error) {
 	return s3Client, sqsClient, nil
 }
 
+
 // GetURL determines if a file needs a signed URL based on its path.
 // It matches CloudFront behaviors: 
 // 1. If the path starts with /private/, it generates a Signed URL.

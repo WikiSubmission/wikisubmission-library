@@ -7,60 +7,99 @@ import (
 	"time"
 )
 
-// SearchObjects performs a fuzzy search on the s3_objects table using GIN trigram indexing.
-// It returns a slice of S3Object sorted by their similarity score to the searchTerm.
-//
-// The similarity threshold is determined by the PostgreSQL 'pg_trgm.similarity_threshold' setting,
-// which can be adjusted globally or per-session.
-func (db *DB) SearchObjects(ctx context.Context, searchTerm string, limit int) ([]S3Object, error) {
+
+type SearchOption func(*searchConfig)
+
+type searchConfig struct {
+    threshold float64
+}
+
+func WithThreshold(t float64) SearchOption {
+    return func(c *searchConfig) {
+        c.threshold = t
+    }
+}
+
+// SearchObjects performs a fuzzy search on the s3_objects table using GiST trigram indexing.
+// It uses the distance operator <-> for KNN (K-Nearest Neighbor) sorting, which is
+// significantly faster than similarity() for large datasets.
+func (db *DB) SearchObjects(ctx context.Context, searchTerm string, limit int, opts ...SearchOption) ([]S3Object, error) {
 	start := time.Now()
 
-	// The '%' operator uses the GIN trigram index for high-performance fuzzy matching.
-	// similarity() calculates a float score from 0.0 to 1.0 for ranking relevance.
+	// Default threshold if not provided
+	config := &searchConfig{threshold: 0.15}
+    
+    // Apply overrides
+    for _, opt := range opts {
+        opt(config)
+    }
+
+	// Initialize as empty slice to ensure valid JSON [] output
+	results := []S3Object{}
+
+	// Use a transaction to ensure SET LOCAL only affects this specific request
+	conn, err := db.Pool.Acquire(ctx)
+    if err != nil {
+        return nil, err
+    }
+    defer conn.Release()
+
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// 1. Set the local threshold for this transaction
+	_, err = tx.Exec(ctx, fmt.Sprintf("SET LOCAL pg_trgm.similarity_threshold = %v", config.threshold))
+	if err != nil {
+		return nil, fmt.Errorf("failed to set local threshold: %w", err)
+	}
+
+	// 2. Execute the optimized GiST KNN query
+	// (1 - (file_key <-> $1)) converts 'distance' back into a 'similarity score' for your frontend
 	query := `
-        SELECT file_key, file_size, last_modified, similarity(file_key, $1) as sml
+        SELECT id, file_key, file_size, last_modified, etag, 
+               (1 - (file_key <-> $1)) as score
         FROM s3_objects
         WHERE file_key % $1
-        ORDER BY sml DESC
+        ORDER BY file_key <-> $1
         LIMIT $2;
     `
 
-	rows, err := db.Pool.Query(ctx, query, searchTerm, limit)
+	rows, err := tx.Query(ctx, query, searchTerm, limit)
 	if err != nil {
-		slog.Error("Database search query failed", 
-			slog.String("term", searchTerm), 
+		slog.Error("Database search query failed",
+			slog.String("term", searchTerm),
 			slog.Any("error", err),
 		)
 		return nil, fmt.Errorf("search query failed: %w", err)
 	}
 	defer rows.Close()
 
-	// Initialize as empty slice rather than nil to ensure valid JSON [] output
-	results := []S3Object{}
-
 	for rows.Next() {
 		var obj S3Object
 		var lastMod time.Time
-		
-		err := rows.Scan(&obj.FileKey, &obj.FileSize, &lastMod, &obj.Similarity)
+
+		// Scanning all necessary data based on your table structure
+		err := rows.Scan(&obj.ID, &obj.FileKey, &obj.FileSize, &lastMod, &obj.ETag, &obj.Similarity)
 		if err != nil {
 			slog.Error("Failed to scan search result row", slog.Any("error", err))
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		
+
 		obj.LastModified = lastMod.Format(time.RFC3339)
 		results = append(results, obj)
 	}
 
-	if err := rows.Err(); err != nil {
-		slog.Error("Post-processing error during row iteration", slog.Any("error", err))
+	// Commit the transaction (though LOCAL changes discard anyway on close)
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
-	// Structured log for search performance analytics
 	slog.Info("Search execution completed",
 		slog.String("query", searchTerm),
-		slog.Int("limit", limit),
+		slog.Float64("threshold", config.threshold),
 		slog.Int("results_found", len(results)),
 		slog.Duration("latency", time.Since(start)),
 	)
