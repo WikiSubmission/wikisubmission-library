@@ -98,6 +98,7 @@ func StartServer(database *db.DB) {
 		}
 		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 	})
+	r.GET("/", handlers.IndexHandler())
 	r.GET("/robots.txt", func(c *gin.Context) {
 			const robots = `User-agent: *
 		Allow: /
