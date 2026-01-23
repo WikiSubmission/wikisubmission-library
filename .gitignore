@@ -1,4 +1,3 @@
 aws/private_key.pem
 aws/public_key.pem
-go.work.sum
 .env
