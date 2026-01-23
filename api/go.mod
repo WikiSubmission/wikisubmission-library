@@ -9,15 +9,18 @@ replace github.com/wikisubmission/ws-lib/aws => ../aws
 replace github.com/wikisubmission/ws-lib/db => ../db
 
 require (
+	github.com/aws/aws-sdk-go-v2 v1.41.1
+	github.com/didip/tollbooth/v7 v7.0.2
+	github.com/didip/tollbooth_gin v0.0.0-20250404214326-bb1a1fc0384e
 	github.com/gin-gonic/gin v1.11.0
 	github.com/joho/godotenv v1.5.1
 	github.com/wikisubmission/ws-lib/aws v0.0.0-00010101000000-000000000000
 	github.com/wikisubmission/ws-lib/db v0.0.0-00010101000000-000000000000
+	github.com/zsais/go-gin-prometheus v1.0.2
 )
 
 require (
 	github.com/aws/aws-lambda-go v1.52.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.41.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.32.7 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7 // indirect
@@ -43,8 +46,6 @@ require (
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/didip/tollbooth/v7 v7.0.2 // indirect
-	github.com/didip/tollbooth_gin v0.0.0-20250404214326-bb1a1fc0384e // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-pkgz/expirable-cache/v3 v3.0.0 // indirect
@@ -74,7 +75,6 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
-	github.com/zsais/go-gin-prometheus v1.0.2 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	golang.org/x/arch v0.20.0 // indirect
 	golang.org/x/crypto v0.46.0 // indirect

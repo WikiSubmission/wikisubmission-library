@@ -6,10 +6,13 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/internal/sync/singleflight"
 	"github.com/gin-gonic/gin"
 	"github.com/wikisubmission/ws-lib/aws"
 	"github.com/wikisubmission/ws-lib/db"
 )
+
+var requestGroup singleflight.Group
 
 // FileHandler provides direct, high-speed access to S3 objects via their file path.
 // It is designed to work with Gin's wildcard routing (e.g., r.GET("/file/*filepath", ...)).
@@ -25,7 +28,7 @@ import (
 // - database: Pointer to the DB instance for B-tree key lookups.
 // - signer: The AWS CloudFront/S3 signer for generating secure, temporary access links.
 func FileHandler(database *db.DB, signer *aws.CFSigner) gin.HandlerFunc {
-	return func(c *gin.Context) {
+	return func(c *gin.Context) {		
 		// Capture everything after "/file/" in the URL.
 		fileKey := c.Param("filepath")
 
@@ -40,27 +43,44 @@ func FileHandler(database *db.DB, signer *aws.CFSigner) gin.HandlerFunc {
 			return
 		}
 
-		// Step 1: Attempt an exact match lookup (highly optimized).
-		obj, err := database.GetObjectByKey(c.Request.Context(), fileKey)
+		result, err, _ := requestGroup.Do(fileKey, func() (interface{}, error) {
+			return database.GetObjectByKey(c.Request.Context(), fileKey)
+		})
 
-		// Step 2: Fallback logic for typos or missing files.
-		// Redirecting to /explorer triggers the fuzzy-search logic to help users find what they meant.
+		// Cast the result back to our object type
+		obj, _ := result.(*db.S3Object)
+
+		// Handle missing files (Redirect to explorer for fuzzy search)
 		if err != nil || obj == nil {
 			slog.Info("Exact match not found, redirecting to explorer", "key", fileKey)
 			c.Redirect(http.StatusFound, "/explorer?q="+url.QueryEscape(fileKey))
 			return
 		}
 
-		// Step 3: Success path - Secure the asset with a signed URL.
-		// Links are valid for 1 hour to balance user convenience and security.
-		url, err := signer.GetURL(obj.FileKey, 1*time.Hour)
+		// Generate the URL (Signer handles IsPrivate logic internally)
+		finalURL, err := signer.GetURL(obj.FileKey, 1*time.Hour)
 		if err != nil {
 			slog.Error("Signer error", "key", fileKey, "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access link"})
 			return
 		}
 
-		// Step 4: Redirect (303 See Other) to the signed storage URL.
-		c.Redirect(http.StatusSeeOther, url)
+		// Apply Cache-Control based on privacy
+		// We use signer.IsPrivate because it's the source of truth for path-based rules
+		if signer.IsPrivate(obj.FileKey) {
+			c.Header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+			c.Header("Pragma", "no-cache")
+			c.Header("Expires", "0")
+		} else {
+			c.Header("Cache-Control", "public, max-age=31536000, immutable")
+			if obj.LastModified != "" {
+				c.Header("Last-Modified", obj.LastModified)
+			}
+			if obj.ETag != "" {
+				c.Header("ETag", obj.ETag)
+			}
+		}
+		// Redirect (303 See Other) to the signed storage URL.
+		c.Redirect(http.StatusSeeOther, finalURL)
 	}
 }

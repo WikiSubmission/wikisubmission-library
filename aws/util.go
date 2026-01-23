@@ -56,3 +56,9 @@ func (s *CFSigner) GetURL(fileKey string, duration time.Duration) (string, error
 	// Default behavior for public content
 	return s.GetPublicURL(fileKey), nil
 }
+
+// IsPrivate returns true if the fileKey matches the private path pattern.
+func (s *CFSigner) IsPrivate(fileKey string) bool {
+    // We check for both "private/" and "/private/" to be safe
+    return strings.HasPrefix(fileKey, "private/") || strings.HasPrefix(fileKey, "/private/")
+}
