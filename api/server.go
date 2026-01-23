@@ -57,6 +57,11 @@ func StartServer(database *db.DB) {
 		c.JSON(http.StatusOK, gin.H{"status": "alive"})
 	})
 
+	r.GET("/favicon.ico", func (c *gin.Context)  {
+		logo_key := "wikisubmission/media/images/logo.png"
+		signer.GetURL(logo_key, time.Hour)
+	})
+
 	r.GET("/health", func(c *gin.Context) {
 		// Deep health check: verify DB connectivity
 		if err := database.Pool.Ping(c.Request.Context()); err != nil {
