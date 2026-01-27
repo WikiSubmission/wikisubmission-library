@@ -69,11 +69,11 @@ DATABASE_SSL_MODE=disable
 ```
 AWS_REGION=us-east-1
 BUCKET_NAME=wikisubmission
-SQS_QUEUE_URL=[https://sqs.us-east-1.amazonaws.com/](https://sqs.us-east-1.amazonaws.com/)...
+SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/
 ```
 # CloudFront Configuration
 ```
-CLOUDFRONT_BASE_URL=[https://cdn.wikisubmission.org](https://cdn.wikisubmission.org)
+CLOUDFRONT_BASE_URL=https://cdn.wikisubmission.org
 CLOUDFRONT_PUBLIC_KEY_ID=KXXXXXXXXXXXX
 CLOUDFRONT_PRIVATE_KEY_PATH=./aws/private_key.pem
 ```
@@ -118,8 +118,14 @@ JSON API for fuzzy search on S3 metadata.
 * `GET /explorer`: The main web interface for browsing and filtering files.
 * `GET /health`: System health check and database connectivity status.
 * `GET /metrics`: Prometheus formatted performance metrics (scraped by Grafana).
+
+### 5. SEO & Discovery
+* `GET /sitemap.xml`: Dynamic XML sitemap for search engine crawlers.
+* `GET /robots.txt`: Rules for automated crawlers, optimized to protect `/private/` paths while allowing `/explorer` indexing.
+
 # License
 This project is licensed under the MIT License. See the LICENSE file for more information.
 
 # Contact
 Email: developer@wikisubmission.org
+

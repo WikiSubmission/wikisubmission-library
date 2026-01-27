@@ -112,6 +112,27 @@ func StartServer(database *db.DB) {
 
 			c.String(200, robots)
 		})
+	
+	r.GET("/sitemap.xml", func(c *gin.Context) {
+		c.Header("Content-Type", "application/xml")
+		c.Header("Cache-Control", "public, max-age=86400") 	
+
+		sitemap := `<?xml version="1.0" encoding="UTF-8"?>
+	<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+		<url>
+			<loc>https://library.wikisubmission.org/</loc>
+			<changefreq>daily</changefreq>
+			<priority>1.0</priority>
+		</url>
+		<url>
+			<loc>https://library.wikisubmission.org/explorer</loc>
+			<changefreq>hourly</changefreq>
+			<priority>0.8</priority>
+		</url>
+	</urlset>`
+
+		c.String(http.StatusOK, sitemap)
+	})
 
 	// 5. Server Configuration
 	port := os.Getenv("PORT")
