@@ -37,6 +37,7 @@ func StartServer(database *db.DB) {
 	}
 
 	r := gin.Default()
+	r.Use(SupportHEAD)
 
 	funcMap := template.FuncMap{
 		"lastPathExtension": func(filename string) string {
