@@ -77,7 +77,8 @@ func StartServer(database *db.DB) {
 
 	// 4. API Routes
 	r.GET("/search", tollbooth_gin.LimitHandler(limiter), handlers.SearchHandler(database, signer))
-	r.GET("/file/*filepath", handlers.FileHandler(database, signer))
+	r.GET("/filename/*filepath", handlers.FileNameHandler(database, signer))
+	r.GET("/file/*filepath", tollbooth_gin.LimitHandler(limiter), handlers.FileHandler(database, signer))
 	r.GET("/explorer", handlers.ExplorerHandler(database))
 	
 	r.GET("/ping", func(c *gin.Context) {

@@ -85,14 +85,39 @@ CLOUDFRONT_PRIVATE_KEY_PATH=./aws/private_key.pem
 # Deployment
 The project includes a multi-stage Dockerfile and docker-compose.yaml for production deployments.
 `docker-compose up --build -d`
-
 # API Endpoints
-- `GET /explorer`: The main web interface for browsing files and directories.
-- `GET /file/*filepath`: Direct asset access. Automatically determines if content is public (cached) or private (signed) and redirects accordingly.
-- `GET /search?q={query}`: JSON API for fuzzy search on S3 metadata.
-- `GET /health`: System health check and DB connectivity status.
-- `GET /metrics` : Prometheus formatted performance metrics.
 
+The API is optimized for high performance using `singleflight` to coalesce concurrent requests, preventing database "thundering herds" during traffic spikes.
+
+### 1. Landing Page
+`GET /`
+* **Description**: Serves the main landing page for the WikiSubmission Library.
+* **Caching**: includes `Cache-Control: public, max-age=3600` to optimize edge delivery via Cloudflare.
+
+### 2. File Access
+`GET /file/*filepath`
+
+Direct asset access via exact path match. 
+
+* **Success (303 See Other)**: If the file exists, the API generates a secure signed URL (1-hour TTL) and redirects the client to the storage provider.
+* **Missing (302 Found)**: If an exact match is not found, the API gracefully redirects to `/explorer?q={filepath}` so the user can find the file via fuzzy search.
+* **Optimization**: Requests for the same path are deduplicated in-flight.
+
+### 3. Metadata Search
+`GET /search?q={query}&limit={n}`
+
+JSON API for fuzzy search on S3 metadata.
+
+* **Parameters**: 
+    * `q` (Required): The search term.
+    * `limit` (Optional): Integer limit of results (Defaults to 10).
+* **Response**: A JSON array of `S3Object` results including metadata and pre-signed `DownloadURL` fields.
+* **Optimization**: Uses a composite cache key (`search:query:limit`) to coalesce simultaneous identical searches via `requestGroup`.
+
+### 4. Utility & Monitoring
+* `GET /explorer`: The main web interface for browsing and filtering files.
+* `GET /health`: System health check and database connectivity status.
+* `GET /metrics`: Prometheus formatted performance metrics (scraped by Grafana).
 # License
 This project is licensed under the MIT License. See the LICENSE file for more information.
 
