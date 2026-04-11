@@ -65,5 +65,5 @@ func main() {
 
 	// 7. Start the HTTP Server
 	// This blocks the main thread. Graceful shutdown is handled inside StartServer.
-	StartServer(database)
+	StartServer(database, s3Client, bucket)
 }

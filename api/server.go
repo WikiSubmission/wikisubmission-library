@@ -17,6 +17,7 @@ import (
 	"github.com/didip/tollbooth/v7"
 	"github.com/didip/tollbooth_gin"
 	"github.com/gin-gonic/gin"
+	s3sdk "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/wikisubmission/ws-lib/api/handlers"
 	"github.com/wikisubmission/ws-lib/aws"
 	"github.com/wikisubmission/ws-lib/db"
@@ -28,7 +29,7 @@ var templateFS embed.FS
 
 // StartServer initializes the HTTP server, sets up middleware,
 // configures routes, and handles graceful shutdown.
-func StartServer(database *db.DB) {
+func StartServer(database *db.DB, s3Client *s3sdk.Client, bucket string) {
 	// 1. Initialize CloudFront Signer
 	signer, err := aws.LoadSigner()
 	if err != nil {
@@ -92,13 +93,37 @@ func StartServer(database *db.DB) {
 	})
 
 	r.GET("/health", func(c *gin.Context) {
-		// Deep health check: verify DB connectivity
-		if err := database.Pool.Ping(c.Request.Context()); err != nil {
-			slog.Error("Health check failed: DB unreachable", slog.Any("error", err))
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "unhealthy", "error": "db error"})
-			return
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+		defer cancel()
+
+		checks := gin.H{}
+		healthy := true
+
+		// DB check
+		if err := database.Pool.Ping(ctx); err != nil {
+			slog.Error("Health check: DB unreachable", slog.Any("error", err))
+			checks["db"] = "error: " + err.Error()
+			healthy = false
+		} else {
+			checks["db"] = "ok"
 		}
-		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
+
+		// S3 check — verifies AWS credentials are valid (critical after key rotation)
+		if bucket == "" {
+			checks["s3"] = "skipped: BUCKET_NAME not set"
+		} else if err := aws.CheckBucketAccess(ctx, s3Client, bucket); err != nil {
+			slog.Error("Health check: S3 unreachable", slog.Any("error", err))
+			checks["s3"] = "error: " + err.Error()
+			healthy = false
+		} else {
+			checks["s3"] = "ok"
+		}
+
+		if healthy {
+			c.JSON(http.StatusOK, gin.H{"status": "healthy", "checks": checks})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "unhealthy", "checks": checks})
+		}
 	})
 	r.GET("/", handlers.IndexHandler())
 	r.GET("/robots.txt", func(c *gin.Context) {

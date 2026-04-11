@@ -28,6 +28,20 @@ func ListFilesInBucket(client *s3.Client, bucketName string) ([]string, error) {
 	return keys, nil
 }
 
+// CheckBucketAccess verifies S3 credentials and bucket accessibility with a minimal API call.
+// Used by the /health endpoint to confirm AWS keys are valid after rotation.
+func CheckBucketAccess(ctx context.Context, client *s3.Client, bucketName string) error {
+	maxKeys := int32(1)
+	_, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucketName),
+		MaxKeys: &maxKeys,
+	})
+	if err != nil {
+		slog.Error("S3 health check failed", slog.String("bucket", bucketName), slog.Any("error", err))
+	}
+	return err
+}
+
 // GetAllObjectsInBucket performs a full crawl of an S3 bucket using a paginator.
 // It returns a slice of types.Object containing metadata for every file in the bucket.
 func GetAllObjectsInBucket(client *s3.Client, bucketName string) ([]types.Object, error) {
