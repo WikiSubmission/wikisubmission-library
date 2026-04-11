@@ -92,6 +92,8 @@ func StartServer(database *db.DB, s3Client *s3sdk.Client, bucket string) {
 		signer.GetURL(logo_key, time.Hour)
 	})
 
+	healthSecret := os.Getenv("HEALTH_SECRET")
+
 	r.GET("/health", func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 		defer cancel()
@@ -119,10 +121,18 @@ func StartServer(database *db.DB, s3Client *s3sdk.Client, bucket string) {
 			checks["s3"] = "ok"
 		}
 
-		if healthy {
-			c.JSON(http.StatusOK, gin.H{"status": "healthy", "checks": checks})
+		status := "healthy"
+		code := http.StatusOK
+		if !healthy {
+			status = "unhealthy"
+			code = http.StatusInternalServerError
+		}
+
+		// Detailed response only when the correct token is provided
+		if healthSecret != "" && c.Query("token") == healthSecret {
+			c.JSON(code, gin.H{"status": status, "checks": checks})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "unhealthy", "checks": checks})
+			c.JSON(code, gin.H{"status": status})
 		}
 	})
 	r.GET("/", handlers.IndexHandler())
