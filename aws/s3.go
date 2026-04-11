@@ -28,13 +28,13 @@ func ListFilesInBucket(client *s3.Client, bucketName string) ([]string, error) {
 	return keys, nil
 }
 
-// CheckBucketAccess verifies S3 credentials and bucket accessibility with a minimal API call.
-// Used by the /health endpoint to confirm AWS keys are valid after rotation.
+// CheckBucketAccess verifies S3 credentials and bucket accessibility.
+// Uses GetBucketLocation (s3:GetBucketLocation) rather than ListObjectsV2 (s3:ListBucket),
+// as the latter may be explicitly denied by restrictive identity-based policies.
+// An authenticated GetBucketLocation response is sufficient to confirm valid credentials.
 func CheckBucketAccess(ctx context.Context, client *s3.Client, bucketName string) error {
-	maxKeys := int32(1)
-	_, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-		Bucket:  aws.String(bucketName),
-		MaxKeys: &maxKeys,
+	_, err := client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
+		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
 		slog.Error("S3 health check failed", slog.String("bucket", bucketName), slog.Any("error", err))
