@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	s3sdk "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/wikisubmission/ws-lib/api/handlers"
+	"github.com/wikisubmission/ws-lib/api/health"
 	"github.com/wikisubmission/ws-lib/aws"
 	"github.com/wikisubmission/ws-lib/db"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
@@ -83,58 +84,30 @@ func StartServer(database *db.DB, s3Client *s3sdk.Client, bucket string) {
 	r.GET("/file/*filepath", tollbooth_gin.LimitHandler(limiter), handlers.FileHandler(database, signer))
 	r.GET("/explorer", handlers.ExplorerHandler(database))
 	
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "alive"})
-	})
-
-	r.GET("/favicon.ico", func (c *gin.Context)  {
+	r.GET("/favicon.ico", func(c *gin.Context) {
 		logo_key := "wikisubmission/media/images/logo.png"
 		signer.GetURL(logo_key, time.Hour)
 	})
 
-	healthSecret := os.Getenv("HEALTH_SECRET")
+	// Health endpoints — see wikisubmission-infra/runbooks/health-endpoints.md
+	healthDeps := health.New("ws-lib",
+		health.WithCheck("postgres", true, func(ctx context.Context) error {
+			return database.Pool.Ping(ctx)
+		}),
+		health.WithCheck("s3", true, func(ctx context.Context) error {
+			if bucket == "" {
+				return fmt.Errorf("BUCKET_NAME not set")
+			}
+			return aws.CheckBucketAccess(ctx, s3Client, bucket)
+		}),
+		health.WithEnv("APP_ENV", os.Getenv("APP_ENV")),
+		health.WithEnv("BUCKET_NAME", bucket),
+	)
+	healthDeps.Register(r, healthSecretsFromEnv)
 
-	r.GET("/health", func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-		defer cancel()
-
-		checks := gin.H{}
-		healthy := true
-
-		// DB check
-		if err := database.Pool.Ping(ctx); err != nil {
-			slog.Error("Health check: DB unreachable", slog.Any("error", err))
-			checks["db"] = "error: " + err.Error()
-			healthy = false
-		} else {
-			checks["db"] = "ok"
-		}
-
-		// S3 check — verifies AWS credentials are valid (critical after key rotation)
-		if bucket == "" {
-			checks["s3"] = "skipped: BUCKET_NAME not set"
-		} else if err := aws.CheckBucketAccess(ctx, s3Client, bucket); err != nil {
-			slog.Error("Health check: S3 unreachable", slog.Any("error", err))
-			checks["s3"] = "error: " + err.Error()
-			healthy = false
-		} else {
-			checks["s3"] = "ok"
-		}
-
-		status := "healthy"
-		code := http.StatusOK
-		if !healthy {
-			status = "unhealthy"
-			code = http.StatusInternalServerError
-		}
-
-		// Detailed response only when the correct token is provided
-		if healthSecret != "" && c.Query("token") == healthSecret {
-			c.JSON(code, gin.H{"status": status, "checks": checks})
-		} else {
-			c.JSON(code, gin.H{"status": status})
-		}
-	})
+	// Legacy aliases — keep during cutover, remove after monitors updated.
+	r.GET("/health", healthDeps.Liveness())
+	r.GET("/ping", healthDeps.Liveness())
 	r.GET("/", handlers.IndexHandler())
 	r.GET("/robots.txt", func(c *gin.Context) {
 			const robots = `User-agent: *
