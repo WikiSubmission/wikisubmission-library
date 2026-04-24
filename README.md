@@ -129,3 +129,14 @@ This project is licensed under the MIT License. See the LICENSE file for more in
 # Contact
 Email: developer@wikisubmission.org
 
+## Coolify setup
+
+`cd ~/Projects/ws/ws-lib`
+
+```bash
+psql "postgres://postgres:SUPERPASS@HOST:5432/postgres" \
+  -v db_name=ws_lib_metadata \
+  -v db_user=ws_lib_backend \
+  -v db_pass='password,thisisnotmyactualpasswordbtwfrfrfrfrfr' \
+  -f init.sql
+```
