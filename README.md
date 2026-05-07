@@ -129,14 +129,27 @@ This project is licensed under the MIT License. See the LICENSE file for more in
 # Contact
 Email: developer@wikisubmission.org
 
-## Coolify setup
+## Shared pgvector instance (Coolify/Hetzner)
 
-`cd ~/Projects/ws/ws-lib`
+ws-lib and ws-backend share a single Postgres instance with isolated databases and roles. Bootstrap is one command per repo.
+
+Set `POSTGRES_ADMIN_URL` and `DATABASE_*` in `.env`, then:
 
 ```bash
-psql "postgres://postgres:SUPERPASS@HOST:5432/postgres" \
-  -v db_name=ws_lib_metadata \
-  -v db_user=ws_lib_backend \
-  -v db_pass='password,thisisnotmyactualpasswordbtwfrfrfrfrfr' \
-  -f init.sql
+cd ~/Projects/ws/ws-lib
+just coolify-init
+```
+
+This runs `init.sql` against the superuser URL and creates `ws_lib_metadata` + `ws_lib_backend` + `pg_trgm` extension. The schema itself is created at app startup via the embedded migrations.
+
+Repeat the equivalent step in `ws-backend` to create its database on the same instance.
+
+## Snapshots (local dev)
+
+```bash
+just export coolify       # pg_dump s3_objects from coolify -> db/dumps/<ts>__coolify.dump
+just dumps                # list available dumps
+just import latest        # restore latest dump into local DB
+just push hetzner latest  # push a dump up to a non-local target (prompts)
+just verify local coolify # row-count sanity check
 ```

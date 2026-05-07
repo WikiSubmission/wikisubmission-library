@@ -1,3 +1,4 @@
 aws/private_key.pem
 aws/public_key.pem
 .env
+db/dumps/*
