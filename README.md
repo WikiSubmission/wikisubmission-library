@@ -32,7 +32,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 ALTER DATABASE ws_lib_metadata SET pg_trgm.similarity_threshold = 0.15;
 
 -- 4. Create the application service role
-CREATE ROLE ws_lib_backend WITH LOGIN PASSWORD 'tDte&458LdeCL7492IehdLRGiiu';
+CREATE ROLE ws_lib_backend WITH LOGIN PASSWORD 'your_secure_password';
 
 -- 5. Grant necessary permissions
 \c ws_lib_metadata;
