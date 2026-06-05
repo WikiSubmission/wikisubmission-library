@@ -83,7 +83,19 @@ func StartServer(database *db.DB, s3Client *s3sdk.Client, bucket string) {
 	r.GET("/filename/*filepath", handlers.FileNameHandler(database, signer))
 	r.GET("/file/*filepath", tollbooth_gin.LimitHandler(limiter), handlers.FileHandler(database, signer))
 	r.GET("/explorer", handlers.ExplorerHandler(database))
-	
+
+	// Internal store endpoint: trusted services (e.g. ws-backend's data export)
+	// POST an object to store under private/ and get back a signed URL, so all
+	// S3 + CloudFront access stays here. Authenticated with the same HMAC
+	// signature scheme as /healthz/detailed, using a dedicated rotatable secret.
+	storeSecrets := func() [][]byte {
+		return [][]byte{
+			[]byte(os.Getenv("STORE_AUTH_SECRET")),
+			[]byte(os.Getenv("STORE_AUTH_SECRET_PREVIOUS")),
+		}
+	}
+	r.POST("/private/store", health.RequireSignature(storeSecrets), handlers.StoreHandler(s3Client, signer, bucket))
+
 	r.GET("/favicon.ico", func(c *gin.Context) {
 		logo_key := "wikisubmission/media/images/logo.png"
 		signer.GetURL(logo_key, time.Hour)

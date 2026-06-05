@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
 
@@ -8,6 +9,25 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
+
+// PutObject writes an object to the bucket with the given content type and
+// content disposition. Used by the authenticated /private/store endpoint so
+// trusted internal services (e.g. ws-backend's data export) can stash
+// service-generated artifacts under the private/ prefix without holding their
+// own S3 or CloudFront credentials.
+func PutObject(ctx context.Context, client *s3.Client, bucket, key string, body []byte, contentType, contentDisposition string) error {
+	_, err := client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:             aws.String(bucket),
+		Key:                aws.String(key),
+		Body:               bytes.NewReader(body),
+		ContentType:        aws.String(contentType),
+		ContentDisposition: aws.String(contentDisposition),
+	})
+	if err != nil {
+		slog.Error("S3 PutObject failed", slog.String("bucket", bucket), slog.String("key", key), slog.Any("error", err))
+	}
+	return err
+}
 
 // ListFilesInBucket returns a slice of all object keys in a bucket.
 // Note: This only returns up to the first 1,000 keys. For full synchronization,
