@@ -96,6 +96,11 @@ func StartServer(database *db.DB, s3Client *s3sdk.Client, bucket string) {
 	}
 	r.POST("/private/store", health.RequireSignature(storeSecrets), handlers.StoreHandler(s3Client, signer, bucket))
 
+	// Public variant: same HMAC auth, but objects land under an allowlisted
+	// public prefix (offline/) and the response URL is the stable, unsigned
+	// CloudFront URL. Used by ws-backend's offline-bundle publisher.
+	r.POST("/private/store-public", health.RequireSignature(storeSecrets), handlers.StorePublicHandler(s3Client, signer, bucket))
+
 	r.GET("/favicon.ico", func(c *gin.Context) {
 		logo_key := "wikisubmission/media/images/logo.png"
 		signer.GetURL(logo_key, time.Hour)

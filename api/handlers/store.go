@@ -78,7 +78,7 @@ func StoreHandler(s3Client *s3sdk.Client, signer *aws.CFSigner, bucket string) g
 			contentType = "application/octet-stream"
 		}
 
-		if err := aws.PutObject(c.Request.Context(), s3Client, bucket, key, payload, contentType, req.Disposition); err != nil {
+		if err := aws.PutObject(c.Request.Context(), s3Client, bucket, key, payload, contentType, req.Disposition, ""); err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": "failed to store object"})
 			return
 		}
