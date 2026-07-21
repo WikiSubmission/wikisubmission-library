@@ -24,8 +24,9 @@ const (
 
 // publicStorePrefixes are the only key prefixes the public store endpoint may
 // write to. Each must be served publicly by CloudFront (no signed-URL
-// behavior). offline/ holds the offline content bundles and their manifest.
-var publicStorePrefixes = []string{"offline/"}
+// behavior). offline/ holds the offline content bundles and their manifest;
+// editorial/ holds images uploaded from the first-party content editor.
+var publicStorePrefixes = []string{"offline/", "editorial/"}
 
 type storePublicRequest struct {
 	Key           string `json:"key"`
